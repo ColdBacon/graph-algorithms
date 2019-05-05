@@ -128,15 +128,14 @@ def random_edges(graph, n):
 def MST(graph,n):
     TV=[1] #wierzcholki w drzewie -> 1 wierzcholek startowy
     T=[] #krawedzie w drzewie -> na start lista pusta
-    edges = graph.edges
-    MST = Graph()
+    MST=Graph()
     while len(T)<n-1:
         min = 1001
         tmpu=n+1
         tmpv=n+1
         for u in TV:
             for v in graph.iteradjacent(u):
-                if graph[u][v]<min and ((v in TV)==False):
+                if graph[u][v]>0 and graph[u][v]<min and ((v in TV)==False):
                     min=graph[u][v]
                     tmpu=u
                     tmpv=v
@@ -145,8 +144,9 @@ def MST(graph,n):
             break
         else:
             TV.append(tmpv)
-            T.append([tmpu,tmpv,min])
-    return T
+            T.append((tmpu,tmpv,min))
+            MST.add_edge(Edge(tmpu,tmpv,min))
+    return T,MST
     
 def primMST(graph, startVertex, n):
     cost = 0
