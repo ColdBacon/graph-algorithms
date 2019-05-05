@@ -1,5 +1,6 @@
-import random
+import random, datetime, timeit, sys 
 from random import randint
+sys.setrecursionlimit(1500)
 
 class Edge():
     def __init__(self, source, target, weight = 1):     #inicjalizuje obiekt krawędzi
@@ -98,6 +99,81 @@ class Graph(dict):
             for edge in self.iteroutedges(source):
                 print("%s(%s)" %(edge.target, edge.weight))
 
+
+class Matrix_Graph (object):
+    def __init__(self, n, directed=False):   #inicjalizuje obiekt grafu
+        if n<0:
+            raise ValueError("n musi byc liczba dodatnia")
+        self.n=n
+        self.directed = directed
+        self.data=[[0]*self.n for node in range(self.n)]
+        
+    def is_directed(self):
+        return self.directed
+        
+    def v(self):
+        return self.n
+    
+    def e(self):
+        counter=0
+        for source in range(self.n):
+            for target in range(self.n):
+                if self.data[source][target] !=0:
+                    counter=counter+1
+        return (counter if self.directed else counter/2)
+
+    def has_node(self, node):
+        return 0<=node<self.n
+        
+    def add_edge(self, edge):
+        if edge.source==edge.target:
+            raise ValueError("petle sa zabronione")
+        if self.data[edge.source][edge.target]==0:
+            self.data[edge.source][edge.target]=edge.weight
+        else:
+            raise ValueError("krawedzie rownolegle sa zabronione")
+
+    def del_edge(self, edge):
+        self.data[edge.source][edge.target]=0
+        if not self.directed:
+            self.data[edge.target][edge.source]=0
+            
+    def has_edge(self, edge):
+        return self.data[edge.source][edge.target] != 0
+    
+    def weight(self, edge):
+        return self.data[edge.source][edge.target]
+    
+    def iternodes(self):
+        return iter(range(self.n))
+        
+    def iteradjacent(self, source):
+        for target in range(self.n):
+            if self.data[source][target]!=0:
+                yield target
+            
+    def iteroutedges(self, source):
+        for target in range(self.n):
+            if self.data[source][target]!=0:
+                yield Edge(source, target, self.data[source][target])
+
+    def iterinedges(self, source):
+        for target in range(self.n):
+            if self.data[target][source]!=0:
+                yield Edge(target, source, self.data[target][source])
+
+    def iteredges(self):
+        for source in range(self.n):
+            for target in (range(self.n)):
+                if self.data[source][target]!=0 and (self.directed or source<target):
+                    yield Edge(source, target, self.data[source][target])
+
+    def show(self):
+        for source in range(self.n):
+            print(source+1, ":")
+            for target in self.iteradjacent(source):
+                print("%s(%s)" % (target+1, self.data[source][target]))
+
 def random_edges(graph, n):
     full = n*(n-1)/2
     m = int(full * 0.6)
@@ -154,7 +230,6 @@ class DFS():
                 self._visit(child, pre_action, post_action)
         if post_action:
             post_action(source)             #akcja przy opuszczaniu source
-
        
 class Topological_sort():
     def __init__(self, graph):
@@ -165,19 +240,49 @@ class Topological_sort():
         DFS(self.graph).run(post_action = lambda node: self.order.append(node))
         self.order.reverse()
 
-n=int(input("wprowadź ilość wierzchołków: "))
-G = Graph(n, directed = False)
+    def runM(self):                         #uruchamianie dla macierzy
+        DFS(self.graph).run(post_action = lambda node: self.order.append(node+1))
+        self.order.reverse()
 
-for i in range(1, n+1):
-    G.add_node(i)
+file = open('czasy.txt', 'a')
+file.write("LISTA\tMACIERZ\n")
+#n=int(input("wprowadź ilość wierzchołków: "))
 
-random_edges(G, n)
+for x in range(3):
+    for n in range(100, 1501, 100):
+        print(n)
+        G = Graph(n, directed = True)
+        MG = Matrix_Graph(n, directed = True)
 
-G.show()
+        for i in range(1, n+1):
+            G.add_node(i)
 
-dfs = DFS(G)
-dfs.run()
+        random_edges(G, n)
+        for i in range(1, n+1):
+            for j in range(i, n+1):
+                if G.has_edge(Edge(i, j)):
+                    MG.add_edge(Edge(i-1, j-1))
 
-top = Topological_sort(G)
-top.run()
-print(top.order)
+        top = Topological_sort(G)
+        start = datetime.datetime.now()
+        top.run()
+        duration = datetime.datetime.now() - start
+        DURATION=str(duration)
+        score=DURATION[2:].replace('.', ',')
+        file.write(score)
+        file.write('\t')
+        #print(top.order)
+
+        topM = Topological_sort(MG)
+        start = datetime.datetime.now()
+        topM.runM()
+        duration = datetime.datetime.now() - start
+        DURATION=str(duration)
+        score=DURATION[2:].replace('.', ',')
+        file.write(score)
+        file.write('\n')
+        #print(topM.order)
+
+        del G, MG
+    file.write('\n')
+file.close()
